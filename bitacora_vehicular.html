@@ -330,11 +330,19 @@ const actV    = () => getV(S.activeId);
 
 // ── AUTH ──────────────────────────────────
 function signInGoogle() {
-  auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()).catch(() => {
-    const e = document.getElementById('loginError');
-    e.style.display='block'; e.textContent='Error al iniciar sesión. Intenta de nuevo.';
-  });
+  const provider = new firebase.auth.GoogleAuthProvider();
+  const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+  if (isSafari) {
+    auth.signInWithRedirect(provider);
+  } else {
+    auth.signInWithPopup(provider).catch(() => {
+      const e = document.getElementById('loginError');
+      e.style.display='block'; e.textContent='Error al iniciar sesión. Intenta de nuevo.';
+    });
+  }
 }
+
+auth.getRedirectResult().catch(() => {});
 
 auth.onAuthStateChanged(async user => {
   if (!user) { showScreen('login'); if(S.unsub){S.unsub();S.unsub=null;} return; }
