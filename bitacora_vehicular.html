@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Bitácora de Control de Vehículos</title>
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Bitácora">
+<meta name="theme-color" content="#1a56db">
+<link rel="apple-touch-icon" id="appleIcon">
+<link rel="manifest" id="manifestLink">
+<style>
+:root{--primary:#1a56db;--primary-dark:#1e429f;--primary-light:#e8f0fe;--success:#057a55;--success-light:#def7ec;--warning:#c27803;--warning-light:#fdf6b2;--danger:#c81e1e;--danger-light:#fde8e8;--gray-50:#f9fafb;--gray-100:#f3f4f6;--gray-200:#e5e7eb;--gray-300:#d1d5db;--gray-400:#9ca3af;--gray-600:#4b5563;--gray-700:#374151;--gray-800:#1f2937;--white:#ffffff;--shadow:0 1px 3px rgba(0,0,0,.12),0 1px 2px rgba(0,0,0,.08);--shadow-md:0 4px 6px rgba(0,0,0,.07),0 2px 4px rgba(0,0,0,.06);--shadow-lg:0 10px 15px rgba(0,0,0,.1),0 4px 6px rgba(0,0,0,.05);--radius:10px;--radius-sm:6px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--gray-100);color:var(--gray-800);min-height:100vh}
+
+/* LOGIN */
+#loginScreen{position:fixed;inset:0;background:linear-gradient(135deg,#1a56db 0%,#1e429f 100%);display:flex;align-items:center;justify-content:center;z-index:9999}
+.login-box{background:white;border-radius:20px;padding:40px 32px;max-width:360px;width:90%;text-align:center;box-shadow:var(--shadow-lg)}
+.login-box svg{width:56px;height:56px;color:var(--primary);margin-bottom:16px}
+.login-box h2{font-size:1.3rem;font-weight:800;margin-bottom:6px}
+.login-box p{font-size:.85rem;color:var(--gray-400);margin-bottom:24px}
+.btn-google{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:12px;border:1.5px solid var(--gray-200);border-radius:var(--radius);background:white;cursor:pointer;font-size:.9rem;font-weight:600;color:var(--gray-700);transition:all .15s;font-family:inherit}
+.btn-google:hover{background:var(--gray-50);border-color:var(--gray-300)}
+.btn-google img{width:20px;height:20px}
+
+/* HEADER */
+.app-header{background:linear-gradient(135deg,#1a56db 0%,#1e429f 100%);color:white;padding:12px 20px;display:flex;align-items:center;gap:12px;box-shadow:var(--shadow-md);position:sticky;top:0;z-index:100}
+.app-header svg{width:28px;height:28px;flex-shrink:0}
+.app-header h1{font-size:1rem;font-weight:700;line-height:1.2}
+.app-header p{font-size:.68rem;opacity:.8}
+.header-right{margin-left:auto;display:flex;align-items:center;gap:8px;flex-shrink:0}
+.user-badge{font-size:.7rem;background:rgba(255,255,255,.15);padding:3px 9px;border-radius:20px;white-space:nowrap;max-width:150px;overflow:hidden;text-overflow:ellipsis}
+.role-badge{font-size:.66rem;font-weight:700;padding:3px 8px;border-radius:20px}
+.role-editor{background:var(--success-light);color:var(--success)}
+.role-viewer{background:var(--warning-light);color:var(--warning)}
+.btn-logout{background:rgba(255,255,255,.15);border:none;color:white;padding:5px 9px;border-radius:var(--radius-sm);cursor:pointer;font-size:.72rem;font-weight:600}
+.btn-logout:hover{background:rgba(255,255,255,.25)}
+.sync-indicator{font-size:.66rem;color:rgba(255,255,255,.7);display:flex;align-items:center;gap:4px}
+.sync-dot{width:6px;height:6px;background:#4ade80;border-radius:50%;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* LAYOUT */
+.app-body{display:flex;min-height:calc(100vh - 56px)}
+
+/* SIDEBAR */
+.sidebar{width:248px;min-width:248px;background:var(--white);border-right:1px solid var(--gray-200);display:flex;flex-direction:column;padding:12px;gap:6px}
+.sidebar-title{font-size:.66rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--gray-400);padding:0 4px}
+.vehicle-card{border-radius:var(--radius-sm);padding:8px 10px;cursor:pointer;border:2px solid transparent;display:flex;align-items:center;gap:8px;transition:all .15s}
+.vehicle-card:hover{background:var(--primary-light)}
+.vehicle-card.active{background:var(--primary-light);border-color:var(--primary)}
+.vehicle-thumb{width:36px;height:28px;border-radius:4px;background:var(--gray-100);flex-shrink:0;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.vehicle-thumb img{width:100%;height:100%;object-fit:cover}
+.vehicle-thumb svg{width:17px;height:17px;color:var(--gray-400)}
+.vehicle-info{flex:1;min-width:0}
+.vehicle-name{font-size:.78rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vehicle-plate{display:inline-block;font-size:.62rem;font-weight:700;background:var(--gray-800);color:white;padding:1px 5px;border-radius:3px;letter-spacing:.05em}
+.delete-btn{background:none;border:none;cursor:pointer;color:var(--gray-300);padding:2px;border-radius:4px;transition:all .15s;flex-shrink:0}
+.delete-btn:hover{color:var(--danger);background:var(--danger-light)}
+.btn-add-vehicle{margin-top:4px;padding:8px;border:2px dashed var(--gray-300);background:none;border-radius:var(--radius-sm);cursor:pointer;font-size:.78rem;color:var(--primary);font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .15s;width:100%}
+.btn-add-vehicle:hover{background:var(--primary-light);border-color:var(--primary)}
+.btn-fleet{display:flex;align-items:center;gap:7px;width:100%;padding:8px 10px;border:none;background:var(--primary-light);border-radius:var(--radius-sm);cursor:pointer;font-size:.78rem;font-weight:700;color:var(--primary);transition:all .15s}
+.btn-fleet:hover{background:var(--primary);color:white}
+.sidebar-bottom{margin-top:auto;padding-top:10px;border-top:1px solid var(--gray-100)}
+
+/* MAIN */
+.main{flex:1;padding:18px;overflow-y:auto}
+.tabs{display:flex;gap:3px;background:var(--white);padding:5px;border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:16px;width:fit-content;flex-wrap:wrap}
+.tab-btn{padding:7px 14px;border:none;background:none;border-radius:var(--radius-sm);cursor:pointer;font-size:.8rem;font-weight:600;color:var(--gray-600);display:flex;align-items:center;gap:5px;transition:all .15s}
+.tab-btn:hover{background:var(--gray-100)}
+.tab-btn.active{background:var(--primary);color:white}
+.tab-btn svg{width:14px;height:14px}
+
+.card{background:var(--white);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;margin-bottom:12px}
+.card-title{font-size:.88rem;font-weight:700;color:var(--gray-700);margin-bottom:12px;display:flex;align-items:center;gap:7px;padding-bottom:10px;border-bottom:1px solid var(--gray-100)}
+.card-title svg{width:16px;height:16px;color:var(--primary)}
+
+.vehicle-photo-area{display:flex;gap:16px;align-items:flex-start;margin-bottom:16px}
+.photo-uploader{width:160px;min-width:160px;height:108px;border:2px dashed var(--gray-300);border-radius:var(--radius);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;cursor:pointer;transition:all .15s;position:relative;overflow:hidden;background:var(--gray-50)}
+.photo-uploader:hover{border-color:var(--primary);background:var(--primary-light)}
+.photo-uploader input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer}
+.photo-uploader img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.photo-uploader-label{font-size:.68rem;color:var(--gray-400);font-weight:600;text-align:center;pointer-events:none;z-index:1}
+.photo-uploader > svg{color:var(--gray-300);width:24px;height:24px;pointer-events:none;z-index:1}
+.photo-uploader.has-photo .photo-uploader-label,.photo-uploader.has-photo > svg{display:none}
+
+.form-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(185px,1fr));gap:11px}
+.form-group{display:flex;flex-direction:column;gap:3px}
+.form-group.full{grid-column:1/-1}
+.form-label{font-size:.7rem;font-weight:700;color:var(--gray-600);text-transform:uppercase;letter-spacing:.04em}
+.form-label .req{color:var(--danger);margin-left:2px}
+.form-input,.form-select,.form-textarea{padding:8px 10px;border:1.5px solid var(--gray-200);border-radius:var(--radius-sm);font-size:.84rem;color:var(--gray-800);background:var(--white);transition:border-color .15s;font-family:inherit;width:100%}
+.form-input:focus,.form-select:focus,.form-textarea:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(26,86,219,.1)}
+.form-input:disabled,.form-select:disabled,.form-textarea:disabled{background:var(--gray-50);color:var(--gray-600);cursor:not-allowed}
+.form-textarea{resize:vertical;min-height:66px}
+
+.maintenance-list{display:flex;flex-direction:column;gap:9px}
+.maintenance-item{border:1.5px solid var(--gray-200);border-radius:var(--radius);overflow:hidden;transition:box-shadow .15s}
+.maintenance-item:hover{box-shadow:var(--shadow-md)}
+.maintenance-header{display:flex;align-items:center;gap:9px;padding:10px 13px;cursor:pointer;background:var(--gray-50)}
+.maintenance-badge{font-size:.66rem;font-weight:700;padding:3px 7px;border-radius:20px;white-space:nowrap}
+.badge-preventivo{background:var(--success-light);color:var(--success)}
+.badge-correctivo{background:var(--warning-light);color:var(--warning)}
+.maintenance-meta{flex:1}
+.maintenance-desc{font-size:.81rem;font-weight:600}
+.maintenance-date{font-size:.7rem;color:var(--gray-400)}
+.maintenance-cost{font-size:.83rem;font-weight:700;color:var(--primary)}
+.maintenance-body{padding:11px 13px;display:none;border-top:1px solid var(--gray-100)}
+.maintenance-body.open{display:grid;grid-template-columns:repeat(auto-fill,minmax(145px,1fr));gap:9px}
+.detail-label{font-size:.66rem;font-weight:700;color:var(--gray-400);text-transform:uppercase}
+.detail-value{font-size:.81rem;color:var(--gray-700)}
+.add-maint-form{border:2px dashed var(--gray-300);border-radius:var(--radius);padding:16px;display:none}
+.add-maint-form.open{display:block}
+
+.btn{padding:8px 15px;border:none;border-radius:var(--radius-sm);font-size:.81rem;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:5px;transition:all .15s;font-family:inherit}
+.btn svg{width:13px;height:13px}
+.btn-primary{background:var(--primary);color:white}
+.btn-primary:hover{background:var(--primary-dark)}
+.btn-success{background:var(--success);color:white}
+.btn-success:hover{opacity:.9}
+.btn-danger{background:var(--danger);color:white}
+.btn-danger:hover{opacity:.9}
+.btn-outline{background:white;color:var(--gray-700);border:1.5px solid var(--gray-200)}
+.btn-outline:hover{background:var(--gray-100)}
+.btn-sm{padding:5px 10px;font-size:.74rem}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn-row{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}
+
+.stats-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(125px,1fr));gap:9px;margin-bottom:12px}
+.stat-card{background:white;border-radius:var(--radius);padding:11px;box-shadow:var(--shadow);text-align:center}
+.stat-number{font-size:1.45rem;font-weight:800;color:var(--primary);line-height:1}
+.stat-label{font-size:.68rem;color:var(--gray-400);font-weight:600;margin-top:3px}
+
+.empty-state{text-align:center;padding:34px 20px;color:var(--gray-400)}
+.empty-state svg{width:42px;height:42px;margin-bottom:9px}
+.empty-state p{font-size:.86rem}
+
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;display:none;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:white;border-radius:var(--radius);padding:20px;max-width:440px;width:92%;box-shadow:var(--shadow-lg);max-height:88vh;overflow-y:auto}
+.modal-title{font-size:.92rem;font-weight:700;margin-bottom:13px}
+
+.divider{height:1px;background:var(--gray-100);margin:12px 0}
+.km-badge{background:var(--gray-100);color:var(--gray-600);font-size:.74rem;font-weight:700;padding:2px 6px;border-radius:4px}
+
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--gray-800);color:white;padding:8px 16px;border-radius:50px;font-size:.81rem;font-weight:600;z-index:9999;display:none;box-shadow:var(--shadow-lg);white-space:nowrap}
+.toast.show{display:block;animation:tIn .2s}
+@keyframes tIn{from{opacity:0;transform:translateX(-50%) translateY(8px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+.spinner{display:inline-block;width:13px;height:13px;border:2px solid rgba(255,255,255,.3);border-top-color:white;border-radius:50%;animation:spin .6s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+@media(max-width:640px){
+  .app-body{flex-direction:column}
+  .sidebar{width:100%;min-width:0;flex-direction:row;flex-wrap:wrap;padding:8px;gap:5px}
+  .sidebar .sidebar-bottom{display:none}
+  .main{padding:10px}
+  .vehicle-photo-area{flex-direction:column}
+  .stats-row{grid-template-columns:repeat(2,1fr)}
+  .tabs{width:100%}
+  .user-badge{display:none}
+}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="loginScreen">
+  <div class="login-box">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="1" y="3" width="15" height="13" rx="2"/><path d="M16 8h4l3 5v3h-7V8z"/>
+      <circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>
+    </svg>
+    <h2>Bitácora de Vehículos</h2>
+    <p>Gestión de flota y mantenimiento</p>
+    <button class="btn-google" onclick="signInGoogle()">
+      <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="G">
+      Ingresar con Google
+    </button>
+    <div id="loginError" style="margin-top:10px;font-size:.78rem;color:var(--danger);display:none"></div>
+  </div>
+</div>
+
+<!-- SIN ACCESO -->
+<div id="noAccessScreen" style="position:fixed;inset:0;background:white;display:none;align-items:center;justify-content:center;z-index:9998">
+  <div style="text-align:center;max-width:320px;padding:32px">
+    <div style="font-size:3rem;margin-bottom:14px">🔒</div>
+    <h2 style="font-size:1.05rem;font-weight:800;margin-bottom:7px">Sin acceso</h2>
+    <p style="font-size:.83rem;color:var(--gray-600);margin-bottom:5px">Tu cuenta <strong id="noAccessEmail"></strong> no tiene permiso.</p>
+    <p style="font-size:.8rem;color:var(--gray-400);margin-bottom:18px">Pide a un administrador que te agregue.</p>
+    <button class="btn btn-outline" onclick="firebase.auth().signOut()">Cerrar sesión</button>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="appContainer" style="display:none">
+  <header class="app-header">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="1" y="3" width="15" height="13" rx="2"/><path d="M16 8h4l3 5v3h-7V8z"/>
+      <circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>
+    </svg>
+    <div>
+      <h1>Bitácora de Vehículos</h1>
+      <div class="sync-indicator"><span class="sync-dot"></span><span>Tiempo real</span></div>
+    </div>
+    <div class="header-right">
+      <span class="user-badge" id="userEmailBadge"></span>
+      <span class="role-badge" id="userRoleBadge"></span>
+      <button class="btn-logout" onclick="firebase.auth().signOut()">Salir</button>
+    </div>
+  </header>
+
+  <div class="app-body">
+    <aside class="sidebar">
+      <button class="btn-fleet" onclick="showFleetOverview()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        Vista General
+      </button>
+      <div class="sidebar-title">Vehículos</div>
+      <div id="vehicleList"><div style="font-size:.74rem;color:var(--gray-400);padding:5px 4px">Cargando...</div></div>
+      <button class="btn-add-vehicle" id="btnAddV" style="display:none" onclick="openAddVehicleModal()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Agregar Vehículo
+      </button>
+      <div class="sidebar-bottom" id="usersMenuBtn" style="display:none">
+        <button class="btn btn-outline btn-sm" style="width:100%;justify-content:center" onclick="openUsersModal()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          Gestionar Usuarios
+        </button>
+      </div>
+    </aside>
+
+    <main class="main" id="mainContent">
+      <div class="empty-state"><div style="font-size:2rem;margin-bottom:9px">⏳</div><p>Cargando...</p></div>
+    </main>
+  </div>
+</div>
+
+<!-- MODAL AGREGAR VEHÍCULO -->
+<div class="modal-overlay" id="addVehicleModal">
+  <div class="modal">
+    <div class="modal-title">🚗 Agregar Vehículo</div>
+    <div class="form-grid">
+      <div class="form-group"><label class="form-label">Patente <span class="req">*</span></label><input class="form-input" id="nv_plate" placeholder="ABCD12" style="text-transform:uppercase"></div>
+      <div class="form-group"><label class="form-label">Marca <span class="req">*</span></label><input class="form-input" id="nv_brand" placeholder="Toyota"></div>
+      <div class="form-group"><label class="form-label">Modelo <span class="req">*</span></label><input class="form-input" id="nv_model" placeholder="Hilux"></div>
+      <div class="form-group"><label class="form-label">Año</label><input class="form-input" id="nv_year" type="number" placeholder="2020"></div>
+      <div class="form-group"><label class="form-label">Tipo</label>
+        <select class="form-select" id="nv_tipo"><option value="">Seleccionar...</option><option>Automóvil</option><option>Camioneta</option><option>Furgón</option><option>Camión</option><option>Bus</option><option>Minibús</option><option>Moto</option><option>Maquinaria</option></select>
+      </div>
+      <div class="form-group"><label class="form-label">Color</label><input class="form-input" id="nv_color" placeholder="Blanco"></div>
+      <div class="form-group"><label class="form-label">Combustible</label>
+        <select class="form-select" id="nv_combustible"><option value="">Seleccionar...</option><option>Gasolina</option><option>Diésel</option><option>GLP</option><option>GNC</option><option>Eléctrico</option><option>Híbrido</option></select>
+      </div>
+      <div class="form-group full"><label class="form-label">N° Chasis</label><input class="form-input" id="nv_chassis" placeholder="9BWZZZ377VT004251"></div>
+      <div class="form-group full"><label class="form-label">N° Motor</label><input class="form-input" id="nv_motor" placeholder="2TR-1234567"></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" id="btnConfirmAdd" onclick="addVehicle()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Agregar
+      </button>
+      <button class="btn btn-outline" onclick="closeModal('addVehicleModal')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL ELIMINAR -->
+<div class="modal-overlay" id="deleteModal">
+  <div class="modal">
+    <div class="modal-title">⚠️ Eliminar Vehículo</div>
+    <p style="color:var(--gray-600);font-size:.86rem;margin-bottom:12px">¿Seguro? Se eliminarán todos los registros.</p>
+    <div class="btn-row">
+      <button class="btn btn-danger" id="confirmDeleteBtn">Sí, eliminar</button>
+      <button class="btn btn-outline" onclick="closeModal('deleteModal')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL USUARIOS -->
+<div class="modal-overlay" id="usersModal">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-title">👥 Gestión de Usuarios</div>
+    <div id="usersList" style="margin-bottom:12px"></div>
+    <div class="divider"></div>
+    <div class="form-grid">
+      <div class="form-group full"><label class="form-label">Correo del usuario</label><input class="form-input" id="nu_email" placeholder="correo@gmail.com" type="email"></div>
+      <div class="form-group"><label class="form-label">Rol</label>
+        <select class="form-select" id="nu_rol"><option value="viewer">Viewer — solo lectura</option><option value="editor">Editor — puede editar</option></select>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="saveUserAction()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Guardar
+      </button>
+      <button class="btn btn-outline" onclick="closeModal('usersModal')">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- FIREBASE -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+<script>
+firebase.initializeApp({
+  apiKey:"AIzaSyAAl-0n3ndyWVs5UC9Q9mJVYZPx3LNqxZA",
+  authDomain:"control-vehiculos-24d9c.firebaseapp.com",
+  projectId:"control-vehiculos-24d9c",
+  storageBucket:"control-vehiculos-24d9c.firebasestorage.app",
+  messagingSenderId:"211121141944",
+  appId:"1:211121141944:web:120a5a1cde2eff91219c4d"
+});
+const auth = firebase.auth();
+const db   = firebase.firestore();
+db.enablePersistence().catch(()=>{});
+
+// ── STATE ─────────────────────────────────
+const S = { vehicles:[], activeId:null, tab:'registro', role:null, user:null, unsub:null };
+const isEd = () => S.role === 'editor';
+const ro   = () => isEd() ? '' : 'disabled';
+const fmt     = n => n != null ? '$' + Number(n).toLocaleString('es-CL') : '—';
+const fmtKm   = n => n != null ? Number(n).toLocaleString('es-CL') + ' km' : '—';
+const fmtDate = s => s ? new Date(s+'T12:00:00').toLocaleDateString('es-CL') : '—';
+const getV    = id => S.vehicles.find(v => v.id === id);
+const actV    = () => getV(S.activeId);
+
+// ── AUTH ──────────────────────────────────
+function signInGoogle() {
+  auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()).catch(() => {
+    const e = document.getElementById('loginError');
+    e.style.display='block'; e.textContent='Error al iniciar sesión. Intenta de nuevo.';
+  });
+}
+
+auth.onAuthStateChanged(async user => {
+  if (!user) { showScreen('login'); if(S.unsub){S.unsub();S.unsub=null;} return; }
+  S.user = user;
+  const email = user.email.toLowerCase();
+  const roleDoc = await db.collection('userRoles').doc(email).get();
+  if (!roleDoc.exists) {
+    const any = await db.collection('userRoles').limit(1).get();
+    if (any.empty) {
+      await db.collection('userRoles').doc(email).set({ role:'editor', addedAt: new Date().toISOString() });
+      S.role = 'editor';
+    } else {
+      document.getElementById('noAccessEmail').textContent = user.email;
+      showScreen('noAccess'); return;
+    }
+  } else { S.role = roleDoc.data().role; }
+  showScreen('app');
+  document.getElementById('userEmailBadge').textContent = user.email;
+  document.getElementById('userRoleBadge').textContent  = isEd() ? 'Editor' : 'Viewer';
+  document.getElementById('userRoleBadge').className    = 'role-badge ' + (isEd() ? 'role-editor' : 'role-viewer');
+  if (isEd()) { document.getElementById('btnAddV').style.display='flex'; document.getElementById('usersMenuBtn').style.display='block'; }
+  startListening();
+});
+
+function showScreen(s) {
+  document.getElementById('loginScreen').style.display    = s==='login'    ? 'flex' : 'none';
+  document.getElementById('noAccessScreen').style.display = s==='noAccess' ? 'flex' : 'none';
+  document.getElementById('appContainer').style.display   = s==='app'      ? 'block' : 'none';
+}
+
+// ── REAL-TIME LISTENER ────────────────────
+function startListening() {
+  if (S.unsub) S.unsub();
+  S.unsub = db.collection('vehicles').orderBy('createdAt','asc').onSnapshot(snap => {
+    S.vehicles = snap.docs.map(d => ({ id:d.id, ...d.data(), maintenance:d.data().maintenance||[] }));
+    renderSidebar();
+    if (!S.activeId) showFleetOverview(); else renderMain();
+  });
+}
+
+// ── SIDEBAR ───────────────────────────────
+function renderSidebar() {
+  const el = document.getElementById('vehicleList');
+  if (!S.vehicles.length) { el.innerHTML='<p style="font-size:.74rem;color:var(--gray-400);padding:5px 4px">Sin vehículos</p>'; return; }
+  el.innerHTML = S.vehicles.map(v => `
+    <div class="vehicle-card ${v.id===S.activeId?'active':''}" onclick="selectV('${v.id}')">
+      <div class="vehicle-thumb">${v.vehiclePhoto?`<img src="${v.vehiclePhoto}">`:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13" rx="2"/><path d="M16 8h4l3 5v3h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>`}</div>
+      <div class="vehicle-info"><div class="vehicle-name">${v.brand} ${v.model}</div><span class="vehicle-plate">${v.plate}</span></div>
+      ${isEd()?`<button class="delete-btn" onclick="event.stopPropagation();promptDelete('${v.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6M9 6V4h6v2"/></svg></button>`:''}
+    </div>`).join('');
+}
+
+function selectV(id) { S.activeId=id; S.tab='registro'; renderSidebar(); renderMain(); }
+
+// ── FLEET OVERVIEW ────────────────────────
+function showFleetOverview() {
+  S.activeId=null; renderSidebar();
+  const dds=[{key:'revisionTecnica',label:'Rev. Técnica'},{key:'seguroSoap',label:'SOAP'},{key:'seguroParticular',label:'Seg. Particular'},{key:'permisoCirculacion',label:'Perm. Circulación'}];
+  function si(date,noApl){
+    if(noApl) return{t:'No aplica',c:'var(--gray-400)',b:'var(--gray-100)',o:4};
+    if(!date)  return{t:'Sin datos', c:'var(--gray-400)',b:'var(--gray-100)',o:3};
+    const d=Math.ceil((new Date(date+'T12:00:00')-new Date())/86400000);
+    if(d<0)    return{t:'Vencido',       c:'var(--danger)',  b:'var(--danger-light)', o:0};
+    if(d<=30)  return{t:`Vence en ${d}d`,c:'var(--warning)', b:'var(--warning-light)',o:1};
+    return           {t:'Vigente',       c:'var(--success)', b:'var(--success-light)',o:2};
+  }
+  let venc=0,pv=0,vig=0;
+  S.vehicles.forEach(v=>dds.forEach(d=>{const s=si(v.docs?.[d.key]?.vencimiento||'',d.key==='seguroParticular'&&!v.docs?.seguroParticular?.tiene);if(s.o===0)venc++;else if(s.o===1)pv++;else if(s.o===2)vig++;}));
+  const rows=S.vehicles.map(v=>{
+    const cells=dds.map(d=>{const s=si(v.docs?.[d.key]?.vencimiento||'',d.key==='seguroParticular'&&!v.docs?.seguroParticular?.tiene);return`<td style="text-align:center;padding:8px 5px"><span style="display:inline-block;font-size:.68rem;font-weight:700;color:${s.c};background:${s.b};padding:2px 8px;border-radius:20px;white-space:nowrap">${s.t}</span></td>`;}).join('');
+    return`<tr style="border-bottom:1px solid var(--gray-100);cursor:pointer" onclick="selectV('${v.id}')">
+      <td style="padding:8px 10px"><div style="display:flex;align-items:center;gap:8px"><div style="width:34px;height:26px;border-radius:4px;background:var(--gray-100);overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center">${v.vehiclePhoto?`<img src="${v.vehiclePhoto}" style="width:100%;height:100%;object-fit:cover">`:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;color:var(--gray-400)"><rect x="1" y="3" width="15" height="13" rx="2"/><path d="M16 8h4l3 5v3h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>`}</div><div><div style="font-weight:700;font-size:.81rem">${v.brand} ${v.model}</div><div style="display:flex;gap:4px;align-items:center;margin-top:2px"><span style="font-size:.65rem;font-weight:700;background:var(--gray-800);color:white;padding:1px 5px;border-radius:3px">${v.plate}</span>${v.tipo?`<span style="font-size:.65rem;color:var(--gray-400)">${v.tipo}</span>`:''}</div></div></div></td>
+      <td style="text-align:center;padding:8px 5px;font-size:.78rem;color:var(--gray-600)">${v.km?fmtKm(v.km):'—'}</td>${cells}
+      <td style="text-align:center;padding:8px 5px;font-size:.78rem;color:var(--gray-600)">${v.maintenance?.length||0}</td>
+      <td style="text-align:center;padding:8px 5px;font-size:.78rem;color:var(--gray-600)">${v.maintenance?.length?fmtDate(v.maintenance[0].date):'—'}</td>
+    </tr>`;
+  }).join('');
+  document.getElementById('mainContent').innerHTML=`
+    <div style="margin-bottom:16px"><h2 style="font-size:1rem;font-weight:800;margin-bottom:2px">Vista General de Flota</h2><p style="font-size:.78rem;color:var(--gray-400)">${S.vehicles.length} vehículo${S.vehicles.length!==1?'s':''} · actualización en tiempo real</p></div>
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-number">${S.vehicles.length}</div><div class="stat-label">Vehículos</div></div>
+      <div class="stat-card"><div class="stat-number" style="color:var(--danger)">${venc}</div><div class="stat-label">Docs Vencidos</div></div>
+      <div class="stat-card"><div class="stat-number" style="color:var(--warning)">${pv}</div><div class="stat-label">Por Vencer 30d</div></div>
+      <div class="stat-card"><div class="stat-number" style="color:var(--success)">${vig}</div><div class="stat-label">Docs Vigentes</div></div>
+    </div>
+    ${!S.vehicles.length?`<div class="card"><div class="empty-state"><p>${isEd()?'Agrega tu primer vehículo.':'Sin vehículos registrados.'}</p></div></div>`:`
+    <div class="card" style="overflow-x:auto;padding:0">
+      <table style="width:100%;border-collapse:collapse;min-width:660px">
+        <thead><tr style="background:var(--gray-50);border-bottom:2px solid var(--gray-200)">
+          <th style="text-align:left;padding:8px 10px;font-size:.7rem;font-weight:700;color:var(--gray-600);text-transform:uppercase">Vehículo</th>
+          <th style="text-align:center;padding:8px 5px;font-size:.7rem;font-weight:700;color:var(--gray-600);text-transform:uppercase">Km</th>
+          ${dds.map(d=>`<th style="text-align:center;padding:8px 5px;font-size:.7rem;font-weight:700;color:var(--gray-600);text-transform:uppercase">${d.label}</th>`).join('')}
+          <th style="text-align:center;padding:8px 5px;font-size:.7rem;font-weight:700;color:var(--gray-600);text-transform:uppercase">Mant.</th>
+          <th style="text-align:center;padding:8px 5px;font-size:.7rem;font-weight:700;color:var(--gray-600);text-transform:uppercase">Último Serv.</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`}`;
+}
+
+// ── RENDER MAIN ───────────────────────────
+function renderMain() {
+  const v=actV(); if(!v){showFleetOverview();return;}
+  const tc=(v.maintenance||[]).reduce((s,m)=>s+Number(m.cost||0),0);
+  const prev=(v.maintenance||[]).filter(m=>m.type==='Preventivo').length;
+  const corr=(v.maintenance||[]).filter(m=>m.type==='Correctivo').length;
+  const tipos=['Automóvil','Camioneta','Furgón','Camión','Bus','Minibús','Moto','Maquinaria'];
+  const comb=['Gasolina','Diésel','GLP','GNC','Eléctrico','Híbrido'];
+  const cls=['A1','A2','A3','A4','B','C','D','E','F'];
+  const licBadge=(()=>{const e=v.conductor?.vencimientoLicencia;if(!e)return'';const d=Math.ceil((new Date(e+'T12:00:00')-new Date())/86400000);if(d<0)return`<span style="background:var(--danger-light);color:var(--danger);font-size:.64rem;font-weight:700;padding:2px 7px;border-radius:20px">⚠ Vencida</span>`;if(d<=60)return`<span style="background:var(--warning-light);color:var(--warning);font-size:.64rem;font-weight:700;padding:2px 7px;border-radius:20px">⏰ Vence en ${d}d</span>`;return`<span style="background:var(--success-light);color:var(--success);font-size:.64rem;font-weight:700;padding:2px 7px;border-radius:20px">✓ Vigente</span>`;})();
+  const saveBtnV=isEd()?`<div class="btn-row"><button class="btn btn-success" id="btnSaveV" onclick="saveVFS('${v.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>Guardar Cambios</button></div>`:`<div style="margin-top:12px;padding:9px 11px;background:var(--warning-light);color:var(--warning);border-radius:var(--radius-sm);font-size:.78rem;font-weight:600">👁 Modo solo lectura</div>`;
+
+  document.getElementById('mainContent').innerHTML=`
+  <div class="tabs">
+    <button class="tab-btn ${S.tab==='registro'?'active':''}" onclick="switchTab('registro')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>Registro</button>
+    <button class="tab-btn ${S.tab==='mantencion'?'active':''}" onclick="switchTab('mantencion')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>Mantención</button>
+    <button class="tab-btn ${S.tab==='documentos'?'active':''}" onclick="switchTab('documentos')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>Documentos</button>
+  </div>
+
+  <div id="tabR" style="display:${S.tab==='registro'?'block':'none'}">
+    <div class="card">
+      <div class="card-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13" rx="2"/><path d="M16 8h4l3 5v3h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>Identificación del Vehículo</div>
+      <div class="vehicle-photo-area">
+        <div>
+          <div class="form-label" style="margin-bottom:5px">📷 Foto</div>
+          <div class="photo-uploader ${v.vehiclePhoto?'has-photo':''}" id="vpu_${v.id}">
+            ${isEd()?`<input type="file" accept="image/*" onchange="handleVPhoto(event,'${v.id}')">`:''}
+            ${v.vehiclePhoto?`<img src="${v.vehiclePhoto}">`:''}
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            <div class="photo-uploader-label">${isEd()?'Subir foto':'Sin foto'}</div>
+          </div>
+        </div>
+        <div style="flex:1">
+          <div class="form-grid">
+            <div class="form-group"><label class="form-label">Patente</label><input class="form-input" value="${v.plate||''}" onchange="uvl('${v.id}','plate',this.value)" ${ro()} style="font-weight:700;text-transform:uppercase"></div>
+            <div class="form-group"><label class="form-label">Marca</label><input class="form-input" value="${v.brand||''}" onchange="uvl('${v.id}','brand',this.value)" ${ro()}></div>
+            <div class="form-group"><label class="form-label">Modelo</label><input class="form-input" value="${v.model||''}" onchange="uvl('${v.id}','model',this.value)" ${ro()}></div>
+            <div class="form-group"><label class="form-label">Año</label><input class="form-input" type="number" value="${v.year||''}" onchange="uvl('${v.id}','year',this.value)" ${ro()}></div>
+            <div class="form-group"><label class="form-label">Tipo</label><select class="form-select" onchange="uvl('${v.id}','tipo',this.value)" ${ro()}><option value="">Seleccionar...</option>${tipos.map(t=>`<option ${v.tipo===t?'selected':''}>${t}</option>`).join('')}</select></div>
+            <div class="form-group"><label class="form-label">Color</label><input class="form-input" value="${v.color||''}" onchange="uvl('${v.id}','color',this.value)" ${ro()} placeholder="Blanco"></div>
+            <div class="form-group"><label class="form-label">Combustible</label><select class="form-select" onchange="uvl('${v.id}','combustible',this.value)" ${ro()}><option value="">Seleccionar...</option>${comb.map(c=>`<option ${v.combustible===c?'selected':''}>${c}</option>`).join('')}</select></div>
+            <div class="form-group"><label class="form-label">Km Actual</label><input class="form-input" type="number" value="${v.km||''}" onchange="uvl('${v.id}','km',this.value)" ${ro()}></div>
+            <div class="form-group full"><label class="form-label">N° Chasis</label><input class="form-input" value="${v.chassis||''}" onchange="uvl('${v.id}','chassis',this.value)" ${ro()} placeholder="VIN"></div>
+            <div class="form-group full"><label class="form-label">N° Motor</label><input class="form-input" value="${v.motor||''}" onchange="uvl('${v.id}','motor',this.value)" ${ro()} placeholder="2TR-1234567"></div>
+          </div>
+        </div>
+      </div>
+      <div class="divider"></div>
+      <div class="card-title" style="margin-top:2px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Conductor</div>
+      <div class="form-grid" style="margin-bottom:12px">
+        <div class="form-group"><label class="form-label">Nombre <span class="req">*</span></label><input class="form-input" value="${v.conductor?.nombre||''}" onchange="ucl('${v.id}','nombre',this.value)" ${ro()} placeholder="Nombre completo"></div>
+        <div class="form-group"><label class="form-label">RUT</label><input class="form-input" value="${v.conductor?.rut||''}" onchange="ucl('${v.id}','rut',this.value)" ${ro()} placeholder="12.345.678-9"></div>
+        <div class="form-group"><label class="form-label">Teléfono</label><input class="form-input" type="tel" value="${v.conductor?.telefono||''}" onchange="ucl('${v.id}','telefono',this.value)" ${ro()} placeholder="+56 9 1234 5678"></div>
+        <div class="form-group"><label class="form-label">Correo</label><input class="form-input" type="email" value="${v.conductor?.email||''}" onchange="ucl('${v.id}','email',this.value)" ${ro()} placeholder="correo@empresa.cl"></div>
+      </div>
+      <div style="background:var(--gray-50);border-radius:var(--radius);padding:12px;border:1px solid var(--gray-200)">
+        <div style="font-size:.74rem;font-weight:700;color:var(--gray-600);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;display:flex;align-items:center;gap:5px">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
+          Licencia ${licBadge}
+        </div>
+        <div class="form-grid">
+          <div class="form-group"><label class="form-label">Tipo</label><select class="form-select" onchange="ucl('${v.id}','tipoLicencia',this.value)" ${ro()}><option value="" ${!v.conductor?.tipoLicencia?'selected':''}>Seleccionar...</option><option ${v.conductor?.tipoLicencia==='Profesional'?'selected':''}>Profesional</option><option ${v.conductor?.tipoLicencia==='No profesional'?'selected':''}>No profesional</option></select></div>
+          <div class="form-group"><label class="form-label">Clase</label><select class="form-select" onchange="ucl('${v.id}','claseLicencia',this.value)" ${ro()}><option value="">Seleccionar...</option>${cls.map(c=>`<option ${v.conductor?.claseLicencia===c?'selected':''}>${c}</option>`).join('')}</select></div>
+          <div class="form-group"><label class="form-label">Vencimiento</label><input class="form-input" type="date" value="${v.conductor?.vencimientoLicencia||''}" onchange="ucl('${v.id}','vencimientoLicencia',this.value)" ${ro()}></div>
+        </div>
+      </div>
+      ${saveBtnV}
+    </div>
+  </div>
+
+  <div id="tabM" style="display:${S.tab==='mantencion'?'block':'none'}">
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-number">${(v.maintenance||[]).length}</div><div class="stat-label">Servicios</div></div>
+      <div class="stat-card"><div class="stat-number">${prev}</div><div class="stat-label">Preventivos</div></div>
+      <div class="stat-card"><div class="stat-number">${corr}</div><div class="stat-label">Correctivos</div></div>
+      <div class="stat-card"><div class="stat-number" style="font-size:.95rem">${fmt(tc)}</div><div class="stat-label">Costo Total</div></div>
+    </div>
+    <div class="card">
+      <div class="card-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>Historial de Mantención</div>
+      ${!(v.maintenance||[]).length?'<div class="empty-state"><p>Sin registros aún.</p></div>':`
+      <div class="maintenance-list">${(v.maintenance||[]).map((m,i)=>`
+        <div class="maintenance-item">
+          <div class="maintenance-header" onclick="toggleM('mi_${v.id}_${i}')">
+            <span class="maintenance-badge badge-${m.type?.toLowerCase()}">${m.type}</span>
+            <div class="maintenance-meta"><div class="maintenance-desc">${m.desc}</div><div class="maintenance-date">${fmtDate(m.date)} · <span class="km-badge">${fmtKm(m.km)}</span></div></div>
+            <div class="maintenance-cost">${fmt(m.cost)}</div>
+            ${isEd()?`<button onclick="event.stopPropagation();delMaint('${v.id}','${m.id}')" style="background:none;border:none;cursor:pointer;color:var(--gray-300);padding:3px;border-radius:4px" onmouseover="this.style.color='var(--danger)'" onmouseout="this.style.color='var(--gray-300)'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg></button>`:''}
+          </div>
+          <div class="maintenance-body" id="mi_${v.id}_${i}">
+            <div><div class="detail-label">Taller</div><div class="detail-value">${m.workshop||'—'}</div></div>
+            <div><div class="detail-label">Próx. km</div><div class="detail-value">${fmtKm(m.nextKm)}</div></div>
+            <div><div class="detail-label">Próx. fecha</div><div class="detail-value">${fmtDate(m.nextDate)}</div></div>
+            <div style="grid-column:1/-1"><div class="detail-label">Descripción</div><div class="detail-value">${m.desc}</div></div>
+          </div>
+        </div>`).join('')}
+      </div>`}
+      ${isEd()?`<div class="btn-row"><button class="btn btn-primary" onclick="toggleAddForm()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Registrar Mantención</button></div>`:''}
+    </div>
+    ${isEd()?`
+    <div class="add-maint-form" id="addMF">
+      <div class="card" style="margin-bottom:0">
+        <div class="card-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Nuevo Registro</div>
+        <div class="form-grid">
+          <div class="form-group"><label class="form-label">Fecha <span class="req">*</span></label><input class="form-input" type="date" id="m_date"></div>
+          <div class="form-group"><label class="form-label">Km</label><input class="form-input" type="number" id="m_km" placeholder="km"></div>
+          <div class="form-group"><label class="form-label">Tipo <span class="req">*</span></label><select class="form-select" id="m_type"><option value="Preventivo">Preventivo</option><option value="Correctivo">Correctivo</option></select></div>
+          <div class="form-group"><label class="form-label">Costo ($)</label><input class="form-input" type="number" id="m_cost" placeholder="0"></div>
+          <div class="form-group full"><label class="form-label">Descripción <span class="req">*</span></label><textarea class="form-textarea" id="m_desc" placeholder="Ej: Cambio de aceite y filtro"></textarea></div>
+          <div class="form-group"><label class="form-label">Próx. Serv. km</label><input class="form-input" type="number" id="m_nextKm"></div>
+          <div class="form-group"><label class="form-label">Próx. Serv. fecha</label><input class="form-input" type="date" id="m_nextDate"></div>
+          <div class="form-group full"><label class="form-label">Taller / Mecánico</label><input class="form-input" id="m_workshop" placeholder="Nombre del taller"></div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-success" id="btnSM" onclick="saveMFS('${v.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Guardar</button>
+          <button class="btn btn-outline" onclick="toggleAddForm()">Cancelar</button>
+        </div>
+      </div>
+    </div>`:''}
+  </div>
+
+  <div id="tabD" style="display:${S.tab==='documentos'?'block':'none'}">${renderDocsTab(v)}</div>
+  `;
+  const md=document.getElementById('m_date'); if(md) md.value=new Date().toISOString().split('T')[0];
+}
+
+// ── DOCS TAB ──────────────────────────────
+function renderDocsTab(v) {
+  if(!v.docs) v.docs={revisionTecnica:{},seguroSoap:{},seguroParticular:{tiene:false},permisoCirculacion:{}};
+  const d=v.docs;
+  function ds(date){if(!date)return'';const df=Math.ceil((new Date(date+'T12:00:00')-new Date())/86400000);if(df<0)return`<span style="background:var(--danger-light);color:var(--danger);font-size:.68rem;font-weight:700;padding:2px 7px;border-radius:20px;margin-left:4px">⚠ Vencido</span>`;if(df<=30)return`<span style="background:var(--warning-light);color:var(--warning);font-size:.68rem;font-weight:700;padding:2px 7px;border-radius:20px;margin-left:4px">⏰ Vence en ${df}d</span>`;return`<span style="background:var(--success-light);color:var(--success);font-size:.68rem;font-weight:700;padding:2px 7px;border-radius:20px;margin-left:4px">✓ Vigente</span>`;}
+  const sb=isEd()?`<div class="btn-row"><button class="btn btn-success btn-sm" onclick="saveVFS('${v.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/></svg>Guardar</button></div>`:'';
+  const sum=[['Revisión Técnica',d.revisionTecnica?.vencimiento],['Seguro SOAP',d.seguroSoap?.vencimiento],['Seg. Particular',d.seguroParticular?.tiene?d.seguroParticular?.vencimiento:null],['Perm. Circulación',d.permisoCirculacion?.vencimiento]].map(([l,dt])=>{let e='Sin datos',c='var(--gray-400)',b='var(--gray-100)';if(dt===null){e='No aplica';}else if(dt){const df=Math.ceil((new Date(dt+'T12:00:00')-new Date())/86400000);if(df<0){e='Vencido';c='var(--danger)';b='var(--danger-light)';}else if(df<=30){e=`${df}d restantes`;c='var(--warning)';b='var(--warning-light)';}else{e='Vigente';c='var(--success)';b='var(--success-light)';}}return`<div style="background:white;border-radius:var(--radius);padding:10px;box-shadow:var(--shadow);text-align:center"><div style="font-size:.66rem;font-weight:700;color:var(--gray-400);text-transform:uppercase;margin-bottom:4px">${l}</div><div style="font-size:.78rem;font-weight:700;color:${c};background:${b};padding:2px 8px;border-radius:20px;display:inline-block">${e}</div>${dt?`<div style="font-size:.64rem;color:var(--gray-400);margin-top:2px">${new Date(dt+'T12:00:00').toLocaleDateString('es-CL')}</div>`:''}</div>`;}).join('');
+  return`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(115px,1fr));gap:9px;margin-bottom:12px">${sum}</div>
+  <div class="card"><div class="card-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Revisión Técnica ${ds(d.revisionTecnica?.vencimiento)}</div>
+  <div class="form-grid"><div class="form-group"><label class="form-label">N° Cert.</label><input class="form-input" value="${d.revisionTecnica?.numero||''}" ${ro()} onchange="udl('${v.id}','revisionTecnica','numero',this.value)" placeholder="RT-2024-123456"></div><div class="form-group"><label class="form-label">Vencimiento</label><input class="form-input" type="date" value="${d.revisionTecnica?.vencimiento||''}" ${ro()} onchange="udl('${v.id}','revisionTecnica','vencimiento',this.value)"></div><div class="form-group"><label class="form-label">Planta / Taller</label><input class="form-input" value="${d.revisionTecnica?.taller||''}" ${ro()} onchange="udl('${v.id}','revisionTecnica','taller',this.value)" placeholder="Nombre de la planta"></div></div>${sb}</div>
+  <div class="card"><div class="card-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Seguro SOAP ${ds(d.seguroSoap?.vencimiento)}</div>
+  <div class="form-grid"><div class="form-group"><label class="form-label">Compañía</label><input class="form-input" value="${d.seguroSoap?.compania||''}" ${ro()} onchange="udl('${v.id}','seguroSoap','compania',this.value)" placeholder="Mapfre, HDI..."></div><div class="form-group"><label class="form-label">N° Póliza</label><input class="form-input" value="${d.seguroSoap?.poliza||''}" ${ro()} onchange="udl('${v.id}','seguroSoap','poliza',this.value)"></div><div class="form-group"><label class="form-label">Vencimiento</label><input class="form-input" type="date" value="${d.seguroSoap?.vencimiento||''}" ${ro()} onchange="udl('${v.id}','seguroSoap','vencimiento',this.value)"></div></div>${sb}</div>
+  <div class="card"><div class="card-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>Seguro Particular ${d.seguroParticular?.tiene?ds(d.seguroParticular?.vencimiento):''}</div>
+  <div style="margin-bottom:10px"><label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:.84rem;font-weight:600;color:var(--gray-700)"><input type="checkbox" ${d.seguroParticular?.tiene?'checked':''} ${ro()} onchange="toggleSP('${v.id}',this.checked)" style="width:14px;height:14px;accent-color:var(--primary)">Este vehículo tiene seguro particular</label></div>
+  <div id="spf_${v.id}" style="display:${d.seguroParticular?.tiene?'block':'none'}"><div class="form-grid"><div class="form-group"><label class="form-label">Compañía</label><input class="form-input" value="${d.seguroParticular?.compania||''}" ${ro()} onchange="udl('${v.id}','seguroParticular','compania',this.value)"></div><div class="form-group"><label class="form-label">N° Póliza</label><input class="form-input" value="${d.seguroParticular?.poliza||''}" ${ro()} onchange="udl('${v.id}','seguroParticular','poliza',this.value)"></div><div class="form-group"><label class="form-label">Vencimiento</label><input class="form-input" type="date" value="${d.seguroParticular?.vencimiento||''}" ${ro()} onchange="udl('${v.id}','seguroParticular','vencimiento',this.value)"></div><div class="form-group"><label class="form-label">Cobertura</label><select class="form-select" ${ro()} onchange="udl('${v.id}','seguroParticular','cobertura',this.value)"><option value="">Seleccionar...</option>${['Todo riesgo','Daños propios','Responsabilidad civil','Básico'].map(c=>`<option ${d.seguroParticular?.cobertura===c?'selected':''}>${c}</option>`).join('')}</select></div></div></div>${sb}</div>
+  <div class="card"><div class="card-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>Permiso de Circulación ${ds(d.permisoCirculacion?.vencimiento)}</div>
+  <div class="form-grid"><div class="form-group"><label class="form-label">N° Permiso</label><input class="form-input" value="${d.permisoCirculacion?.numero||''}" ${ro()} onchange="udl('${v.id}','permisoCirculacion','numero',this.value)"></div><div class="form-group"><label class="form-label">Municipio</label><input class="form-input" value="${d.permisoCirculacion?.municipio||''}" ${ro()} onchange="udl('${v.id}','permisoCirculacion','municipio',this.value)" placeholder="Municipalidad de..."></div><div class="form-group"><label class="form-label">Vencimiento</label><input class="form-input" type="date" value="${d.permisoCirculacion?.vencimiento||''}" ${ro()} onchange="udl('${v.id}','permisoCirculacion','vencimiento',this.value)"></div></div>${sb}</div>`;
+}
+
+// ── LOCAL UPDATES ─────────────────────────
+function uvl(id,f,v){const o=getV(id);if(!o)return;o[f]=v;if(['plate','brand','model'].includes(f))renderSidebar();}
+function ucl(id,f,v){const o=getV(id);if(!o)return;if(!o.conductor)o.conductor={};o.conductor[f]=v;if(f==='vencimientoLicencia')renderMain();}
+function udl(id,dk,f,v){const o=getV(id);if(!o)return;if(!o.docs)o.docs={};if(!o.docs[dk])o.docs[dk]={};o.docs[dk][f]=v;if(f==='vencimiento')renderMain();}
+function toggleSP(id,checked){const o=getV(id);if(!o)return;if(!o.docs)o.docs={};if(!o.docs.seguroParticular)o.docs.seguroParticular={};o.docs.seguroParticular.tiene=checked;const el=document.getElementById(`spf_${id}`);if(el)el.style.display=checked?'block':'none';renderMain();}
+
+// ── FIRESTORE SAVES ───────────────────────
+async function saveVFS(id){
+  const v=getV(id);if(!v)return;
+  const btn=document.getElementById('btnSaveV');
+  if(btn){btn.disabled=true;btn.innerHTML='<span class="spinner"></span> Guardando...';}
+  try{
+    await db.collection('vehicles').doc(id).update({plate:v.plate||'',brand:v.brand||'',model:v.model||'',year:v.year||null,tipo:v.tipo||'',color:v.color||'',motor:v.motor||'',combustible:v.combustible||'',chassis:v.chassis||'',km:v.km||null,vehiclePhoto:v.vehiclePhoto||null,conductor:v.conductor||{},docs:v.docs||{},maintenance:v.maintenance||[],updatedAt:new Date().toISOString()});
+    toast('✅ Cambios guardados');
+  }catch(e){toast('❌ Error: '+e.message,4000);}
+  if(btn){btn.disabled=false;btn.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Guardar Cambios';}
+}
+
+// ── ADD / DELETE VEHICLE ──────────────────
+function openAddVehicleModal(){
+  ['nv_plate','nv_brand','nv_model','nv_year','nv_chassis','nv_color','nv_motor'].forEach(i=>{const el=document.getElementById(i);if(el)el.value='';});
+  ['nv_tipo','nv_combustible'].forEach(i=>{const el=document.getElementById(i);if(el)el.value='';});
+  document.getElementById('addVehicleModal').classList.add('open');
+}
+async function addVehicle(){
+  const plate=document.getElementById('nv_plate').value.trim().toUpperCase();
+  const brand=document.getElementById('nv_brand').value.trim();
+  const model=document.getElementById('nv_model').value.trim();
+  if(!plate||!brand||!model){alert('Completa: Patente, Marca y Modelo.');return;}
+  const btn=document.getElementById('btnConfirmAdd');
+  btn.disabled=true;btn.innerHTML='<span class="spinner"></span> Guardando...';
+  try{
+    await db.collection('vehicles').add({plate,brand,model,year:document.getElementById('nv_year').value||null,tipo:document.getElementById('nv_tipo').value||'',color:document.getElementById('nv_color').value.trim(),combustible:document.getElementById('nv_combustible').value||'',chassis:document.getElementById('nv_chassis').value.trim(),motor:document.getElementById('nv_motor').value.trim(),conductor:{},docs:{revisionTecnica:{},seguroSoap:{},seguroParticular:{tiene:false},permisoCirculacion:{}},maintenance:[],vehiclePhoto:null,createdAt:new Date().toISOString()});
+    closeModal('addVehicleModal');toast('✅ Vehículo agregado');
+  }catch(e){toast('❌ Error: '+e.message,4000);}
+  btn.disabled=false;btn.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Agregar';
+}
+function promptDelete(id){
+  document.getElementById('confirmDeleteBtn').onclick=async()=>{
+    const btn=document.getElementById('confirmDeleteBtn');btn.disabled=true;btn.textContent='Eliminando...';
+    try{await db.collection('vehicles').doc(id).delete();S.activeId=null;closeModal('deleteModal');toast('🗑 Vehículo eliminado');}
+    catch(e){toast('❌ Error: '+e.message,4000);}
+    btn.disabled=false;btn.textContent='Sí, eliminar';
+  };
+  document.getElementById('deleteModal').classList.add('open');
+}
+
+// ── MAINTENANCE ───────────────────────────
+async function saveMFS(vid){
+  const date=document.getElementById('m_date').value;const desc=document.getElementById('m_desc').value.trim();
+  if(!date||!desc){alert('Completa Fecha y Descripción.');return;}
+  const btn=document.getElementById('btnSM');btn.disabled=true;btn.innerHTML='<span class="spinner"></span> Guardando...';
+  const v=getV(vid);
+  const nm={id:String(Date.now()),date,desc,km:document.getElementById('m_km').value||null,type:document.getElementById('m_type').value,cost:document.getElementById('m_cost').value||null,nextKm:document.getElementById('m_nextKm').value||null,nextDate:document.getElementById('m_nextDate').value||null,workshop:document.getElementById('m_workshop').value.trim(),createdAt:new Date().toISOString()};
+  try{await db.collection('vehicles').doc(vid).update({maintenance:[nm,...(v.maintenance||[])]});toast('✅ Mantención registrada');}
+  catch(e){toast('❌ Error: '+e.message,4000);}
+  btn.disabled=false;btn.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Guardar';
+}
+async function delMaint(vid,mid){
+  if(!confirm('¿Eliminar este registro?'))return;
+  const v=getV(vid);
+  try{await db.collection('vehicles').doc(vid).update({maintenance:(v.maintenance||[]).filter(m=>m.id!==mid)});toast('🗑 Registro eliminado');}
+  catch(e){toast('❌ Error: '+e.message,4000);}
+}
+
+// ── PHOTOS ────────────────────────────────
+function compressImg(b64,maxW=400,maxH=300,q=0.65){return new Promise(r=>{const img=new Image();img.onload=()=>{let w=img.width,h=img.height;if(w>maxW){h=h*maxW/w;w=maxW;}if(h>maxH){w=w*maxH/h;h=maxH;}const c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(img,0,0,w,h);r(c.toDataURL('image/jpeg',q));};img.src=b64;});}
+async function handleVPhoto(event,vid){
+  const file=event.target.files[0];if(!file)return;
+  toast('⏳ Procesando foto...',5000);
+  const reader=new FileReader();
+  reader.onload=async e=>{const comp=await compressImg(e.target.result);const v=getV(vid);if(!v)return;v.vehiclePhoto=comp;renderSidebar();renderMain();toast('✅ Foto lista. Guarda los cambios.');};
+  reader.readAsDataURL(file);
+}
+
+// ── USERS ─────────────────────────────────
+async function openUsersModal(){
+  document.getElementById('usersModal').classList.add('open');
+  document.getElementById('usersList').innerHTML='<p style="font-size:.78rem;color:var(--gray-400)">Cargando...</p>';
+  try{
+    const snap=await db.collection('userRoles').get();
+    const users=snap.docs.map(d=>({email:d.id,...d.data()}));
+    document.getElementById('usersList').innerHTML=users.map(u=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--gray-100)"><div><div style="font-size:.81rem;font-weight:600">${u.email}</div><span style="font-size:.68rem;font-weight:700;padding:2px 7px;border-radius:20px;${u.role==='editor'?'background:var(--success-light);color:var(--success)':'background:var(--warning-light);color:var(--warning)'}">${u.role}</span></div><button class="btn btn-outline btn-sm" onclick="removeUserAction('${u.email}')">Eliminar</button></div>`).join('')||'<p style="color:var(--gray-400);font-size:.78rem">Sin usuarios.</p>';
+  }catch(e){document.getElementById('usersList').innerHTML='<p style="color:var(--danger)">Error al cargar</p>';}
+}
+async function saveUserAction(){
+  const email=document.getElementById('nu_email').value.trim().toLowerCase();const rol=document.getElementById('nu_rol').value;
+  if(!email){alert('Ingresa un correo válido.');return;}
+  try{await db.collection('userRoles').doc(email).set({role:rol,addedBy:S.user.email,addedAt:new Date().toISOString()});toast('✅ Usuario guardado');document.getElementById('nu_email').value='';openUsersModal();}
+  catch(e){toast('❌ Error: '+e.message,4000);}
+}
+async function removeUserAction(email){
+  if(!confirm('¿Eliminar el acceso de '+email+'?'))return;
+  try{await db.collection('userRoles').doc(email).delete();toast('✅ Usuario eliminado');openUsersModal();}
+  catch(e){toast('❌ Error: '+e.message,4000);}
+}
+
+// ── UI HELPERS ────────────────────────────
+function switchTab(t){S.tab=t;renderMain();}
+function toggleM(id){const el=document.getElementById(id);if(el)el.classList.toggle('open');}
+function toggleAddForm(){const f=document.getElementById('addMF');if(f){f.classList.toggle('open');if(f.classList.contains('open'))f.scrollIntoView({behavior:'smooth',block:'start'});}}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+document.querySelectorAll('.modal-overlay').forEach(el=>el.addEventListener('click',e=>{if(e.target===el)el.classList.remove('open');}));
+let _tt;
+function toast(msg,dur=2600){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(_tt);_tt=setTimeout(()=>t.classList.remove('show'),dur);}
+
+// ── PWA ───────────────────────────────────
+(function(){
+  const svg=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192"><rect width="192" height="192" rx="40" fill="#1a56db"/><g transform="translate(20,56)" stroke="white" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"><rect x="2" y="10" width="100" height="64" rx="10"/><path d="M102 34h32l20 30v20H102V34z"/><circle cx="30" cy="86" r="16" fill="#1a56db" stroke="white" stroke-width="8"/><circle cx="122" cy="86" r="16" fill="#1a56db" stroke="white" stroke-width="8"/><path d="M2 46h100"/></g></svg>`;
+  const ic='data:image/svg+xml;base64,'+btoa(svg);
+  document.getElementById('appleIcon').href=ic;
+  document.getElementById('manifestLink').href=URL.createObjectURL(new Blob([JSON.stringify({name:'Bitácora de Vehículos',short_name:'Bitácora',start_url:'./',display:'standalone',background_color:'#1a56db',theme_color:'#1a56db',icons:[{src:ic,sizes:'192x192',type:'image/svg+xml'},{src:ic,sizes:'512x512',type:'image/svg+xml'}]})],{type:'application/manifest+json'}));
+  const sw=`const C='bv3';self.addEventListener('install',e=>{e.waitUntil(caches.open(C).then(c=>c.addAll(['./'])));self.skipWaiting();});self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(x=>x!==C).map(x=>caches.delete(x)))));self.clients.claim();});self.addEventListener('fetch',e=>{e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request)));});`;
+  if('serviceWorker' in navigator) navigator.serviceWorker.register(URL.createObjectURL(new Blob([sw],{type:'application/javascript'}))).catch(()=>{});
+  let dp=null;
+  window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();dp=e;if(!document.getElementById('ib')){const b=document.createElement('div');b.id='ib';b.style.cssText='position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:#1a56db;color:white;padding:10px 16px;border-radius:50px;display:flex;align-items:center;gap:8px;box-shadow:0 4px 20px rgba(0,0,0,.3);z-index:9999;font-family:-apple-system,sans-serif;font-size:.8rem;font-weight:600;cursor:pointer;white-space:nowrap';b.innerHTML='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v13m0 0l-4-4m4 4l4-4"/><rect x="2" y="17" width="20" height="5" rx="2"/></svg>Instalar app<span onclick="document.getElementById(\'ib\').remove()" style="opacity:.6;margin-left:3px">✕</span>';b.addEventListener('click',async e=>{if(e.target.tagName==='SPAN')return;if(dp){dp.prompt();const{outcome}=await dp.userChoice;dp=null;if(outcome==='accepted')b.remove();}});document.body.appendChild(b);}});
+  if(/iphone|ipad|ipod/i.test(navigator.userAgent)&&!window.navigator.standalone){setTimeout(()=>{const t=document.createElement('div');t.style.cssText='position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:#1f2937;color:white;padding:11px 16px;border-radius:14px;font-family:-apple-system,sans-serif;font-size:.76rem;text-align:center;box-shadow:0 4px 20px rgba(0,0,0,.4);z-index:9999;max-width:265px;line-height:1.5';t.innerHTML='<div style="font-weight:700;margin-bottom:2px">📲 Instalar en iPhone</div>Toca <strong>Compartir</strong> (⬆) y luego <strong>"Agregar a pantalla de inicio"</strong><div style="margin-top:6px;opacity:.5;font-size:.68rem;cursor:pointer" onclick="this.parentElement.remove()">Cerrar ✕</div>';document.body.appendChild(t);setTimeout(()=>t.remove(),9000);},1500);}
+})();
+</script>
+</body>
+</html>
